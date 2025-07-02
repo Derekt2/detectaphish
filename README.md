@@ -1,5 +1,8 @@
 # Python Lambda with CDK and CodePipeline
 
+
+[View Pipeline in AWS Console](https://console.aws.amazon.com/codesuite/codepipeline/pipelines/MyPipeline/view)
+
 This project demonstrates how to deploy a Python Lambda function using the AWS CDK and a CodePipeline for continuous deployment.
 
 ## Prerequisites
