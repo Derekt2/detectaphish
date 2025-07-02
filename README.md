@@ -55,3 +55,18 @@ This will create the CodePipeline, which will then build and deploy your Lambda 
 ## Lambda Function
 
 The Lambda function is located in the `lambda` directory. It's a simple function that returns a "Hello from Lambda!" message. The API Gateway endpoint will be created as part of the deployment, and you can find the URL in the AWS CloudFormation console output for the `LambdaStack`.
+
+## Local Testing
+
+You can test the Lambda function locally using the AWS SAM CLI.
+
+1. **Synthesize the CloudFormation template:**
+   ```bash
+   cdk synth
+   ```
+
+2. **Invoke the function locally:**
+   ```bash
+   sudo sam local invoke HelloHandler -t cdk.out/assembly-CdkPipelineStack-Deploy/CdkPipelineStackDeployLambdaStack85B16C90.template.json
+   ```
+   *Note: `sudo` may be required to allow SAM to access the Docker daemon.*
