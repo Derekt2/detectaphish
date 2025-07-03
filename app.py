@@ -15,6 +15,7 @@ frontend_infra_stack = FrontendInfraStack(app, "FrontendInfraStack", env=env)
 
 CdkPipelineStack(app, "CdkPipelineStack",
     frontend_bucket_name=frontend_infra_stack.frontend_bucket.bucket_name,
+    distribution_id=frontend_infra_stack.distribution.distribution_id,
     env=env,
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,

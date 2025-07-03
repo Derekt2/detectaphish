@@ -22,7 +22,7 @@ from aws_cdk import aws_iam as iam
 
 class CdkPipelineStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, frontend_bucket_name: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, frontend_bucket_name: str, distribution_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Defines the source of our code, in this case a GitHub repository
@@ -75,3 +75,18 @@ class CdkPipelineStack(Stack):
         deploy_wave = pipeline.add_wave("Deploy")
         deploy_wave.add_stage(backend_deploy)
         deploy_wave.add_post(frontend_build, frontend_deploy_step)
+        
+        # Invalidate CloudFront cache
+        invalidation_step = CodeBuildStep("InvalidateCache",
+            input=frontend_build.primary_output,
+            commands=[
+                f"aws cloudfront create-invalidation --distribution-id {distribution_id} --paths '/*'"
+            ],
+            role_policy_statements=[
+                iam.PolicyStatement(
+                    actions=["cloudfront:CreateInvalidation"],
+                    resources=[f"arn:aws:cloudfront::{self.account}:distribution/{distribution_id}"]
+                )
+            ]
+        )
+        deploy_wave.add_post(invalidation_step)

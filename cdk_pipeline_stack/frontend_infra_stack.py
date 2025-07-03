@@ -15,6 +15,10 @@ class FrontendInfraStack(Stack):
     def frontend_bucket(self):
         return self._frontend_bucket
 
+    @property
+    def distribution(self):
+        return self._distribution
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -38,7 +42,7 @@ class FrontendInfraStack(Stack):
         )
 
         # Create a CloudFront distribution
-        distribution = cloudfront.Distribution(
+        self._distribution = cloudfront.Distribution(
             self, "FrontendDistribution",
             default_behavior=cloudfront.BehaviorOptions(
                 origin=cloudfront_origins.S3Origin(self._frontend_bucket),
@@ -54,7 +58,7 @@ class FrontendInfraStack(Stack):
             self, "FrontendAliasRecord",
             zone=hosted_zone,
             record_name="detectaphish.com",
-            target=route53.RecordTarget.from_alias(route53_targets.CloudFrontTarget(distribution))
+            target=route53.RecordTarget.from_alias(route53_targets.CloudFrontTarget(self._distribution))
         )
 
-        CfnOutput(self, "DistributionId", value=distribution.distribution_id)
+        CfnOutput(self, "DistributionId", value=self._distribution.distribution_id)
