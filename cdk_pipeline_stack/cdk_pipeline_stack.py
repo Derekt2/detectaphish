@@ -17,6 +17,7 @@ from aws_cdk import (
 )
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
 from .pipeline_stage import PipelineStage
+from .frontend_stage import FrontendStage
 
 
 class CdkPipelineStack(Stack):
@@ -40,8 +41,9 @@ class CdkPipelineStack(Stack):
             )
         )
 
-        deploy = PipelineStage(self, "Deploy", env=kwargs["env"])
-        deploy_stage = pipeline.add_stage(deploy)
+        # Backend Deploy Stage
+        backend_deploy = PipelineStage(self, "BackendDeploy", env=kwargs["env"])
+        backend_deploy_stage = pipeline.add_stage(backend_deploy)
 
         # Frontend Build
         frontend_build = ShellStep("FrontendBuild",
@@ -54,49 +56,6 @@ class CdkPipelineStack(Stack):
             primary_output_directory="frontend/dist"
         )
 
-        # Frontend Deploy
-        deploy.add_pre(frontend_build)
-        
-        frontend_bucket = s3.Bucket(self, "FrontendBucket",
-            website_index_document="index.html",
-            public_read_access=True,
-            block_public_access=s3.BlockPublicAccess(block_public_policy=False)
-        )
-
-        s3_deployment.BucketDeployment(self, "DeployFrontend",
-            sources=[s3_deployment.Source.asset("frontend/dist")],
-            destination_bucket=frontend_bucket
-        )
-
-        # Look up the hosted zone
-        hosted_zone = route53.HostedZone.from_lookup(
-            self, "HostedZone",
-            domain_name="detectaphish.com"
-        )
-
-        # Create a certificate for the frontend
-        frontend_certificate = acm.Certificate(
-            self, "FrontendCertificate",
-            domain_name="detectaphish.com",
-            validation=acm.CertificateValidation.from_dns(hosted_zone),
-        )
-
-        # Create a CloudFront distribution
-        distribution = cloudfront.Distribution(
-            self, "FrontendDistribution",
-            default_behavior=cloudfront.BehaviorOptions(
-                origin=cloudfront.S3Origin(frontend_bucket),
-                viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-            ),
-            domain_names=["detectaphish.com"],
-            certificate=frontend_certificate,
-            default_root_object="index.html",
-        )
-
-        # Create a Route53 record
-        route53.ARecord(
-            self, "FrontendAliasRecord",
-            zone=hosted_zone,
-            record_name="detectaphish.com",
-            target=route53.RecordTarget.from_alias(route53_targets.CloudFrontTarget(distribution))
-        )
+        # Frontend Deploy Stage
+        frontend_deploy = FrontendStage(self, "FrontendDeploy", env=kwargs["env"])
+        frontend_deploy_stage = pipeline.add_stage(frontend_deploy, pre=[frontend_build])

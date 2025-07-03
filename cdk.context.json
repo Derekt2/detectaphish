@@ -2,5 +2,8 @@
   "hosted-zone:account=070648248093:domainName=detectaphish.com:region=us-east-1": {
     "Id": "/hostedzone/Z09919761AU63SXRK8358",
     "Name": "detectaphish.com."
-  }
+  },
+  "acknowledged-issue-numbers": [
+    34892
+  ]
 }
