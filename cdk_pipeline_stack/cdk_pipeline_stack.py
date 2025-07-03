@@ -43,7 +43,6 @@ class CdkPipelineStack(Stack):
 
         # Backend Deploy Stage
         backend_deploy = PipelineStage(self, "BackendDeploy", env=kwargs["env"])
-        pipeline.add_stage(backend_deploy)
 
         # Frontend Build
         frontend_build = ShellStep("FrontendBuild",
@@ -56,22 +55,23 @@ class CdkPipelineStack(Stack):
             primary_output_directory="frontend/dist"
         )
         
-        # Frontend Deploy
-        pipeline.add_wave("FrontendDeploy",
-            post=[
-                CodeBuildStep("DeployFrontend",
-                    input=frontend_build.primary_output,
-                    commands=[f"aws s3 sync . s3://{frontend_bucket_name}"],
-                    role_policy_statements=[
-                        iam.PolicyStatement(
-                            actions=["s3:ListBucket"],
-                            resources=[f"arn:aws:s3:::{frontend_bucket_name}"]
-                        ),
-                        iam.PolicyStatement(
-                            actions=["s3:PutObject", "s3:DeleteObject"],
-                            resources=[f"arn:aws:s3:::{frontend_bucket_name}/*"]
-                        )
-                    ]
+        # Frontend Deploy Step
+        frontend_deploy_step = CodeBuildStep("DeployFrontend",
+            input=frontend_build.primary_output,
+            commands=[f"aws s3 sync . s3://{frontend_bucket_name}"],
+            role_policy_statements=[
+                iam.PolicyStatement(
+                    actions=["s3:ListBucket"],
+                    resources=[f"arn:aws:s3:::{frontend_bucket_name}"]
+                ),
+                iam.PolicyStatement(
+                    actions=["s3:PutObject", "s3:DeleteObject"],
+                    resources=[f"arn:aws:s3:::{frontend_bucket_name}/*"]
                 )
             ]
         )
+
+        # Add a single wave for deployment, running backend and frontend in parallel
+        deploy_wave = pipeline.add_wave("Deploy")
+        deploy_wave.add_stage(backend_deploy)
+        deploy_wave.add_post(frontend_build, frontend_deploy_step)
