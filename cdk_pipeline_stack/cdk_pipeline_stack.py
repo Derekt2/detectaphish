@@ -34,5 +34,5 @@ class CdkPipelineStack(Stack):
             )
         )
 
-        deploy = PipelineStage(self, "Deploy")
+        deploy = PipelineStage(self, "Deploy", env=kwargs["env"])
         deploy_stage = pipeline.add_stage(deploy)

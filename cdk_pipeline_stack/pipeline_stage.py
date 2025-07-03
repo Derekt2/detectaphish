@@ -6,4 +6,4 @@ class PipelineStage(Stage):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        LambdaStack(self, "LambdaStack")
+        LambdaStack(self, "LambdaStack", **kwargs)
