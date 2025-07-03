@@ -2,26 +2,36 @@ import { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [url, setUrl] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const checkUrl = async () => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setFile(event.target.files[0]);
+    }
+  };
+
+  const checkFile = async () => {
+    if (!file) {
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch('https://api.detectaphish.com/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': file.type,
         },
-        body: JSON.stringify({ url }),
+        body: file,
       });
       const data = await response.json();
       console.log(data);
       setResult(data);
     } catch (error) {
-      console.error('Error checking URL:', error);
-      setResult({ error: 'Failed to check URL' });
+      console.error('Error checking file:', error);
+      setResult({ error: 'Failed to check file' });
     } finally {
       setLoading(false);
     }
@@ -32,17 +42,14 @@ function App() {
       <h1>Detect-a-Phish</h1>
       <div className="card">
         <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Enter URL to check"
+          type="file"
+          onChange={handleFileChange}
+          accept=".eml,.msg,image/*"
         />
-        <button onClick={checkUrl} disabled={loading}>
-          {loading ? 'Checking...' : 'Check URL'}
+        <button onClick={checkFile} disabled={loading || !file}>
+          {loading ? 'Checking...' : 'Check File'}
         </button>
-        {result && (
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        )}
+        {result && <pre>{JSON.stringify(result, null, 2)}</pre>}
       </div>
     </>
   );
