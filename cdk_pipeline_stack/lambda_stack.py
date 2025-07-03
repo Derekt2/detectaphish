@@ -33,18 +33,29 @@ class LambdaStack(Stack):
             validation=acm.CertificateValidation.from_dns(hosted_zone),
         )
 
+        # Create the API Gateway Domain Name
+        domain_name = apigw.DomainName(
+            self, "ApiDomainName",
+            domain_name="api.detectaphish.com",
+            certificate=certificate,
+            endpoint_type=apigw.EndpointType.REGIONAL
+        )
+
         # Create the API Gateway
         api = apigw.LambdaRestApi(
             self, 'Endpoint',
             handler=my_lambda,
-            domain_name=apigw.DomainNameOptions(
-                domain_name="api.detectaphish.com",
-                certificate=certificate,
-            ),
             default_cors_preflight_options=apigw.CorsOptions(
                 allow_origins=apigw.Cors.ALL_ORIGINS,
                 allow_methods=apigw.Cors.ALL_METHODS
             )
+        )
+
+        # Map the domain name to the API
+        apigw.BasePathMapping(
+            self, "ApiBasePathMapping",
+            domain_name=domain_name,
+            rest_api=api
         )
 
         # Create a Route53 record
@@ -52,5 +63,5 @@ class LambdaStack(Stack):
             self, "AliasRecord",
             zone=hosted_zone,
             record_name="api",
-            target=route53.RecordTarget.from_alias(targets.ApiGateway(api))
+            target=route53.RecordTarget.from_alias(targets.ApiGatewayDomain(domain_name))
         )
