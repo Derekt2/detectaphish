@@ -2,6 +2,9 @@ from aws_cdk import (
     Stack,
     aws_lambda as _lambda,
     aws_apigateway as apigw,
+    aws_route53 as route53,
+    aws_route53_targets as targets,
+    aws_certificatemanager as acm,
 )
 from constructs import Construct
 
@@ -17,7 +20,33 @@ class LambdaStack(Stack):
             handler='app.handler',
         )
 
-        apigw.LambdaRestApi(
+        # Look up the hosted zone
+        hosted_zone = route53.HostedZone.from_lookup(
+            self, "HostedZone",
+            domain_name="detectaphish.com"
+        )
+
+        # Create a certificate
+        certificate = acm.Certificate(
+            self, "Certificate",
+            domain_name="api.detectaphish.com",
+            validation=acm.CertificateValidation.from_dns(hosted_zone),
+        )
+
+        # Create the API Gateway
+        api = apigw.LambdaRestApi(
             self, 'Endpoint',
             handler=my_lambda,
+            domain_name=apigw.DomainNameOptions(
+                domain_name="api.detectaphish.com",
+                certificate=certificate,
+            )
+        )
+
+        # Create a Route53 record
+        route53.ARecord(
+            self, "AliasRecord",
+            zone=hosted_zone,
+            record_name="api",
+            target=route53.RecordTarget.from_alias(targets.ApiGateway(api))
         )
