@@ -1,7 +1,7 @@
 from aws_cdk import (
     Stack,
+    CfnOutput,
     aws_s3 as s3,
-    aws_s3_deployment as s3_deployment,
     aws_cloudfront as cloudfront,
     aws_cloudfront_origins as cloudfront_origins,
     aws_route53 as route53,
@@ -10,19 +10,18 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-class FrontendStack(Stack):
+class FrontendInfraStack(Stack):
+    @property
+    def frontend_bucket(self):
+        return self._frontend_bucket
+
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        frontend_bucket = s3.Bucket(self, "FrontendBucket",
+        self._frontend_bucket = s3.Bucket(self, "FrontendBucket",
             website_index_document="index.html",
             public_read_access=True,
             block_public_access=s3.BlockPublicAccess(block_public_policy=False)
-        )
-
-        s3_deployment.BucketDeployment(self, "DeployFrontend",
-            sources=[s3_deployment.Source.asset("frontend/dist")],
-            destination_bucket=frontend_bucket
         )
 
         # Look up the hosted zone
@@ -42,7 +41,7 @@ class FrontendStack(Stack):
         distribution = cloudfront.Distribution(
             self, "FrontendDistribution",
             default_behavior=cloudfront.BehaviorOptions(
-                origin=cloudfront_origins.S3Origin(frontend_bucket),
+                origin=cloudfront_origins.S3Origin(self._frontend_bucket),
                 viewer_protocol_policy=cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             ),
             domain_names=["detectaphish.com"],
@@ -57,3 +56,5 @@ class FrontendStack(Stack):
             record_name="detectaphish.com",
             target=route53.RecordTarget.from_alias(route53_targets.CloudFrontTarget(distribution))
         )
+
+        CfnOutput(self, "DistributionId", value=distribution.distribution_id)

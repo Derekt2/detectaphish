@@ -4,10 +4,18 @@ import os
 import aws_cdk as cdk
 
 from cdk_pipeline_stack.cdk_pipeline_stack import CdkPipelineStack
+from cdk_pipeline_stack.frontend_infra_stack import FrontendInfraStack
 
 
 app = cdk.App()
+
+env = cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION'))
+
+frontend_infra_stack = FrontendInfraStack(app, "FrontendInfraStack", env=env)
+
 CdkPipelineStack(app, "CdkPipelineStack",
+    frontend_bucket_name=frontend_infra_stack.frontend_bucket.bucket_name,
+    env=env,
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.
@@ -15,7 +23,7 @@ CdkPipelineStack(app, "CdkPipelineStack",
     # Uncomment the next line to specialize this stack for the AWS Account
     # and Region that are implied by the current CLI configuration.
 
-    env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
+    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
 
     # Uncomment the next line if you know exactly what Account and Region you
     # want to deploy the stack to. */

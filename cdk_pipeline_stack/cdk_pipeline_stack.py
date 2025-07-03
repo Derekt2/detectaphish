@@ -15,14 +15,14 @@ from aws_cdk import (
     aws_codepipeline_actions as codepipeline_actions,
     aws_codebuild as codebuild,
 )
-from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
+from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep, CodeBuildStep
 from .pipeline_stage import PipelineStage
-from .frontend_stage import FrontendStage
+from aws_cdk import aws_iam as iam
 
 
 class CdkPipelineStack(Stack):
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, frontend_bucket_name: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         # Defines the source of our code, in this case a GitHub repository
@@ -43,7 +43,7 @@ class CdkPipelineStack(Stack):
 
         # Backend Deploy Stage
         backend_deploy = PipelineStage(self, "BackendDeploy", env=kwargs["env"])
-        backend_deploy_stage = pipeline.add_stage(backend_deploy)
+        pipeline.add_stage(backend_deploy)
 
         # Frontend Build
         frontend_build = ShellStep("FrontendBuild",
@@ -55,7 +55,19 @@ class CdkPipelineStack(Stack):
             ],
             primary_output_directory="frontend/dist"
         )
-
-        # Frontend Deploy Stage
-        frontend_deploy = FrontendStage(self, "FrontendDeploy", env=kwargs["env"])
-        frontend_deploy_stage = pipeline.add_stage(frontend_deploy, pre=[frontend_build])
+        
+        # Frontend Deploy
+        pipeline.add_wave("FrontendDeploy",
+            post=[
+                CodeBuildStep("DeployFrontend",
+                    input=frontend_build.primary_output,
+                    commands=[f"aws s3 sync . s3://{frontend_bucket_name}"],
+                    role_policy_statements=[
+                        iam.PolicyStatement(
+                            actions=["s3:*"],
+                            resources=[f"arn:aws:s3:::{frontend_bucket_name}/*"]
+                        )
+                    ]
+                )
+            ]
+        )
