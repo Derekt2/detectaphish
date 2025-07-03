@@ -40,6 +40,10 @@ class LambdaStack(Stack):
             domain_name=apigw.DomainNameOptions(
                 domain_name="api.detectaphish.com",
                 certificate=certificate,
+            ),
+            default_cors_preflight_options=apigw.CorsOptions(
+                allow_origins=apigw.Cors.ALL_ORIGINS,
+                allow_methods=apigw.Cors.ALL_METHODS
             )
         )
 
