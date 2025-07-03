@@ -64,7 +64,11 @@ class CdkPipelineStack(Stack):
                     commands=[f"aws s3 sync . s3://{frontend_bucket_name}"],
                     role_policy_statements=[
                         iam.PolicyStatement(
-                            actions=["s3:*"],
+                            actions=["s3:ListBucket"],
+                            resources=[f"arn:aws:s3:::{frontend_bucket_name}"]
+                        ),
+                        iam.PolicyStatement(
+                            actions=["s3:PutObject", "s3:DeleteObject"],
                             resources=[f"arn:aws:s3:::{frontend_bucket_name}/*"]
                         )
                     ]
