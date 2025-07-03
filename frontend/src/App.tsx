@@ -19,16 +19,27 @@ function App() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://api.detectaphish.com/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-      });
-      const data = await response.json();
-      console.log(data);
-      setResult(data);
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64String = (reader.result as string).split(',')[1];
+        const response = await fetch('https://api.detectaphish.com/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ body: base64String }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data);
+          setResult(data);
+        } else {
+          const errorText = await response.text();
+          console.error('Error checking file:', errorText);
+          setResult({ error: `Failed to check file: ${errorText}` });
+        }
+      };
     } catch (error) {
       console.error('Error checking file:', error);
       setResult({ error: 'Failed to check file' });
